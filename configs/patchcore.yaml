@@ -1,0 +1,9 @@
+# Baseline: PatchCore (Roth et al., CVPR 2022) on WideResNet-50 layer2 + layer3.
+name: patchcore
+data:
+  root: data
+  imagenet_norm: true
+model:
+  self_attention: false
+  normalizing_flow: false
+  positional_encoding: none

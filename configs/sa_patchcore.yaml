@@ -1,0 +1,8 @@
+# PatchCore + parameter-free self-attention on layer3.
+name: sa_patchcore
+data:
+  root: data
+model:
+  self_attention: true
+  normalizing_flow: false
+  positional_encoding: none

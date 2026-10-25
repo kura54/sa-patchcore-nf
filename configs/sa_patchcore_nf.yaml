@@ -1,0 +1,17 @@
+# Self-attention PatchCore + conditional normalizing flow with a fixed
+# sine-cosine positional encoding (NCSP'25 / J. Signal Processing version).
+name: sa_patchcore_nf
+data:
+  root: data
+model:
+  self_attention: true
+  normalizing_flow: true
+  positional_encoding: sincos
+flow:
+  condition_dim: 1024
+  coupling_blocks: 25
+  clamp_alpha: 2.8
+  epochs: 100
+  lr: 1.0e-4
+  fiber_batch: 1024
+  patience: 5
