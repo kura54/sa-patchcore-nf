@@ -152,7 +152,7 @@ tests/                   unit tests and a synthetic end-to-end test
 
 ## Data and privacy
 
-The study used a private clinical dataset of 1,360 whole-body FDG-PET screening exams (1,030 normal, 330 abnormal). No images, annotations, model weights or patient-level results are included here, and `.gitignore` blocks common medical image and checkpoint formats.
+The study used a private clinical dataset of 1,360 whole-body FDG-PET screening exams (1,030 normal, 330 abnormal). The example images in `docs/figures/` are shown with the data provider's permission. The dataset itself, annotations, model weights and patient-level results are not included, and `.gitignore` blocks common medical image and checkpoint formats.
 
 ## Publications
 
