@@ -17,6 +17,18 @@ This is a cleaned-up version of my master's research code (2025). The method was
 
 <sub>Test set of 165 normal and 165 abnormal patients. Each row adds one component to the row above. Numbers are from the original experiments; the clinical data is private and is not part of this repository.</sub>
 
+<p align="center"><img src="docs/figures/anomaly_maps_abnormal.png" width="760" alt="Anomaly maps for three abnormal cases. Each row shows the input MIP with the lesion marked by an arrow, followed by maps from PatchCore, self-attention PatchCore, plus normalizing flow, and the proposed model"></p>
+
+<sub>Anomaly maps for three abnormal cases (red = more anomalous; arrows mark the lesions). All four models find the lesion. Going left to right, the score on normal tissue drops: PatchCore lights up the bladder and abdomen as much as the tumour in the middle row, while the proposed model keeps them close to background.</sub>
+
+<details>
+<summary>Normal cases</summary>
+<br>
+<p align="center"><img src="docs/figures/anomaly_maps_normal.png" width="760" alt="Anomaly maps for three normal cases from the same four models"></p>
+
+<sub>Same models on three normal patients. The proposed model gives the flattest maps, with the least response around the chest and abdomen.</sub>
+</details>
+
 ## The problem
 
 PET screening produces a whole-body scan per patient, and radiologists read every one of them looking for small hot spots. Supervised detectors need thousands of annotated lesions of every type. Normal scans are easy to collect.
@@ -58,7 +70,10 @@ The code clusters by anatomy, not by coordinates, so it follows the organ when t
 
 ## Findings worth sharing
 
-- **The self-attention was nearly an identity map.** Visualising the attention weights showed almost all mass on the diagonal. The attention has no learnable projections and, as in the original code, no `1/sqrt(C)` scaling. With C = 1024 the raw dot products are huge, so the softmax becomes one-hot. That explains why attention alone gave only +0.02 AUROC. This repository adds `model.attention_scale: true` to fix the scaling; I have not been able to re-run it on the clinical data, so treat it as an untested idea.
+- **The self-attention was nearly an identity map.** Visualising the attention weights showed almost all mass on the diagonal. The attention has no learnable projections and, as in the original code, no `1/sqrt(C)` scaling. With C = 1024 the raw dot products are huge, so the softmax becomes one-hot. That explains why attention alone gave only +0.02 AUROC.
+
+  <img src="docs/figures/attention_weights.png" width="420" alt="128 x 128 attention matrix for one image: nearly all weight is on the diagonal">
+ This repository adds `model.attention_scale: true` to fix the scaling; I have not been able to re-run it on the clinical data, so treat it as an untested idea.
 - **Distribution shape mattered more than context.** The normalizing flow helped more than attention. Feature histograms before and after the flow went from skewed to close to Gaussian.
 - **The threshold is optimistic.** As in the thesis, it is picked on the test scores themselves. AUROC is unaffected, but accuracy, sensitivity and specificity would be lower with a threshold fixed on the validation split.
 
