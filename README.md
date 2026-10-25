@@ -32,19 +32,20 @@ Each component below targets one of these.
 ## Method
 
 ```mermaid
-flowchart LR
-    A[MIP image<br/>256 x 128] --> B[WideResNet-50<br/>frozen]
-    B -->|layer2 512x32x16| C2[ ]
-    B -->|layer3 1024x16x8| SA[Self-attention]
-    C2 --> PE2[+ sin-cos PE] --> F2[Normalizing flow]
-    SA --> PE3[+ sin-cos PE] --> F3[Normalizing flow]
-    B -.->|copies of layer2 / layer3| KM[k-means k=7] --> LPE[LPE MLP<br/>InfoNCE]
-    F2 --> CAT[concat + upsample<br/>pool to 1536-d]
+flowchart TD
+    A["MIP image (256 x 128)"] --> B["WideResNet-50, frozen"]
+    B -->|"layer2 (512 x 32 x 16)"| PE2["+ sin-cos positional code"]
+    B -->|"layer3 (1024 x 16 x 8)"| SA["Self-attention"]
+    SA --> PE3["+ sin-cos positional code"]
+    PE2 --> F2["Normalizing flow"]
+    PE3 --> F3["Normalizing flow"]
+    B -.->|"copies of layer2 / layer3"| KM["k-means, k = 7"]
+    KM --> LPE["LPE MLP trained with InfoNCE"]
+    F2 --> CAT["Concat, upsample to 32 x 16, pool to 1536-d"]
     F3 --> CAT
     LPE --> CAT
-    CAT --> MB[(Memory bank<br/>greedy coreset 40%)]
-    MB --> S[Patch score = distance to<br/>nearest normal patch<br/>Image score = max]
-    style C2 fill:none,stroke:none
+    CAT --> MB[("Memory bank, greedy coreset 40%")]
+    MB --> S["Patch score: distance to nearest normal patch<br/>Image score: max over patches"]
 ```
 
 **Input.** One maximum-intensity projection (MIP) per patient, rendered from the front of the 3D PET volume and resized to 256 x 128. Intensities are scaled to [0, 1] and repeated to three channels for the ImageNet backbone.
