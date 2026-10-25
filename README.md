@@ -31,34 +31,26 @@ Each component below targets one of these.
 
 ## Method
 
-```mermaid
-flowchart TD
-    A["MIP image (256 x 128)"] --> B["WideResNet-50, frozen"]
-    B -->|"layer2 (512 x 32 x 16)"| PE2["+ sin-cos positional code"]
-    B -->|"layer3 (1024 x 16 x 8)"| SA["Self-attention"]
-    SA --> PE3["+ sin-cos positional code"]
-    PE2 --> F2["Normalizing flow"]
-    PE3 --> F3["Normalizing flow"]
-    B -.->|"copies of layer2 / layer3"| KM["k-means, k = 7"]
-    KM --> LPE["LPE MLP trained with InfoNCE"]
-    F2 --> CAT["Concat, upsample to 32 x 16, pool to 1536-d"]
-    F3 --> CAT
-    LPE --> CAT
-    CAT --> MB[("Memory bank, greedy coreset 40%")]
-    MB --> S["Patch score: distance to nearest normal patch<br/>Image score: max over patches"]
-```
+<p align="center"><img src="docs/figures/architecture.png" width="820" alt="Network overview: WideResNet-50 layer2 and layer3 features go through average pooling or self-attention, positional encoding and normalizing flows, are concatenated into 1536-d patch vectors, stored in a coreset memory bank and scored by nearest-neighbour distance"></p>
+
 
 **Input.** One maximum-intensity projection (MIP) per patient, rendered from the front of the 3D PET volume and resized to 256 x 128. Intensities are scaled to [0, 1] and repeated to three channels for the ImageNet backbone.
 
 **Self-attention on layer3** ([`layers.py`](src/sapc/layers.py)). Every position in the coarse feature map becomes a weighted mix of all positions, so a patch carries context from the rest of the body: "bright spot, and the brain is up there" rather than just "bright spot".
 
+<p align="center"><img src="docs/figures/self_attention.png" width="520" alt="Self-attention over the 16 x 8 layer3 grid: every position is a query against all 128 keys"></p>
+
 **Conditional normalizing flow** ([`flow.py`](src/sapc/flow.py)). Each patch vector, concatenated with a 2D sine-cosine positional code, passes through 25 affine coupling blocks (FrEIA `AllInOneBlock`) trained to map normal patches to a standard Gaussian. The positional code is also fed to every block as a condition, as in CFLOW-AD. In the Gaussianised space, nearest-neighbour distances mean the same thing everywhere in the body. This gave the largest single gain, mostly in sensitivity (0.61 to 0.71).
+
+<p align="center"><img src="docs/figures/flow_histogram.png" width="420" alt="Histogram of one feature channel before (narrow, skewed) and after (close to Gaussian) the normalizing flow"><br><sub>One feature channel before (blue) and after (orange) the flow.</sub></p>
 
 **Learnable positional encoding** ([`lpe.py`](src/sapc/lpe.py)). A sine-cosine code says where a patch sits on the grid, not which organ it shows. Instead:
 
 1. Cluster all normal training patches with k-means (k = 7). k = 7 was chosen to roughly match head, both arms, upper body, lower body and both legs.
 2. Train a small MLP on `[feature, one_hot(cluster)]` with a supervised InfoNCE loss: patches from the same cluster are positives, the rest of the batch are negatives (temperature 0.07).
 3. Append the 256-d MLP output to the flow output before the memory bank. At test time no clustering is run; the MLP gets a uniform cluster code and relies on the features alone.
+
+<p align="center"><img src="docs/figures/lpe_training.png" width="640" alt="LPE training: patch features are clustered with k-means into seven body regions, then an MLP is trained with contrastive learning"><br><img src="docs/figures/lpe_inference.png" width="640" alt="LPE at test time: the trained MLP produces the encoding directly from the features"></p>
 
 The code clusters by anatomy, not by coordinates, so it follows the organ when the body shifts. Qualitatively this suppressed the false positives around the chest and abdomen, and AUROC went from 0.77 to 0.80.
 
